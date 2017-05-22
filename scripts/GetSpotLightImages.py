@@ -1,61 +1,46 @@
-import os, shutil, stat, errno
+import os
+import shutil
 from PIL import Image
 
 # ============================ CONFIG ================================
 
 user = os.environ['USERPROFILE']
-dest_folder = "_tmp_"       # Destination folder in Downloads
-delete_portraits = False    # delete portraits or not?
-min_size = 500              # dimension in pixels
+dest_folder = r"Downloads\_tmp_"  # Destination folder in Downloads
+delete_portraits = False          # delete portraits or not?
+min_size = 500                    # dimension in pixels
 
 # ============================= PATHS ================================
 
-local_packages = "AppData\Local\Packages"
-spotlight_folder = "Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets"
+local_packages = r"AppData\Local\Packages"
+spotlight_folder = r"Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets"
 
-# destination = r"C:\Users\{0}\Downloads\{1}".format(user, dest_folder)
-origin = os.path.join(user, local_packages, spotlight_folder) 
-destination = os.path.join(user, 'Downloads', dest_folder)
+origin = os.path.join(user, local_packages, spotlight_folder)
+destination = os.path.join(user, dest_folder)
 
 # ======================== COLOR MESSAGES ============================
 
-class bcolors:
-    HEAD = '\033[95m'
-    OK   = '\033[92m'
-    WARN = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
+COLOR_HEAD = '\033[95m'
+COLOR_OK   = '\033[92m'
+COLOR_WARN = '\033[93m'
+COLOR_FAIL = '\033[91m'
+COLOR_ENDC = '\033[0m'
 
-color_msg_fail_origin       = bcolors.FAIL + "origin path does not exists:\n" + bcolors.ENDC 
-color_msg_fail_copy         = bcolors.FAIL + "copy fail:\n"                 + bcolors.ENDC
-color_msg_fail_rename       = bcolors.FAIL + "rename fail:\n"               + bcolors.ENDC
-color_msg_fail_identify     = bcolors.FAIL + "identify fail  -> deleted"    + bcolors.ENDC
-color_msg_warn_exists       = bcolors.WARN + "already exists -> not copied" + bcolors.ENDC
-color_msg_ok_del_small      = bcolors.FAIL + "too small      -> deleted"    + bcolors.ENDC
-color_msg_ok_del_portrait   = bcolors.FAIL + "portrait       -> deleted"    + bcolors.ENDC
-color_msg_ok_keep_portrait  = bcolors.OK   + "portrait       -> kept"       + bcolors.ENDC
-color_msg_ok_keep_landscape = bcolors.OK   + "landscape      -> kept"       + bcolors.ENDC
+color_msg_fail_origin       = COLOR_FAIL + "origin path does not exists:\n" + COLOR_ENDC
+color_msg_fail_copy         = COLOR_FAIL + "copy fail:\n"                 + COLOR_ENDC
+color_msg_fail_rename       = COLOR_FAIL + "rename fail:\n"               + COLOR_ENDC
+color_msg_fail_identify     = COLOR_FAIL + "identify fail  -> deleted"    + COLOR_ENDC
+color_msg_warn_exists       = COLOR_WARN + "already exists -> not copied" + COLOR_ENDC
+color_msg_ok_del_small      = COLOR_FAIL + "too small      -> deleted"    + COLOR_ENDC
+color_msg_ok_del_portrait   = COLOR_FAIL + "portrait       -> deleted"    + COLOR_ENDC
+color_msg_ok_keep_portrait  = COLOR_OK   + "portrait       -> kept"       + COLOR_ENDC
+color_msg_ok_keep_landscape = COLOR_OK   + "landscape      -> kept"       + COLOR_ENDC
 
-print(bcolors.HEAD + "Made by `SylannBin` (copyleft)\n\
+print(COLOR_HEAD + "Made by `SylannBin` (copyleft)\n\
 Thank you for using this simple script. I hope it serves you well.\n\
 Attention! This script works for Windows only.\n\
-Thanks to Microsoft for bringing us beautiful images.\n" + bcolors.ENDC)
-
-# ============================= FUNCS ================================
-
-# handle access error function
-def handleRemoveReadonly(func, path, exc):
-    excvalue = exc[1]
-    if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
-        os.chmod(path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
-        func(path)
-    else:
-        raise
+Thanks to Microsoft for bringing us beautiful images.\n" + COLOR_ENDC)
 
 # ============================= SCRIPT ===============================
-
-# I could delete the whole folder and all its content ...
-# shutil.rmtree(destination, ignore_errors=False, onerror=handleRemoveReadonly)
 
 # Ensure destination folder exists
 if not os.path.exists(destination):
@@ -83,25 +68,23 @@ for filename in os.listdir(origin):
 
     # make copy
     shutil.copy(origpath, destination)
-    
-    # check the copy file
+    # check
     if not os.path.isfile(destpath):
         print(color_msg_fail_copy + destpath)
         break
-    
+
     # rename copy file
     os.rename(destpath, bestpath)
-
-    # check renamed copy file
+    # check
     if not os.path.isfile(bestpath):
         print(color_msg_fail_rename + bestpath)
         break
-    
+
     # Get dimensions
     try:
         width, height = Image.open(bestpath).size
     except:
-        print(shortname + ": ---- x ---- | " + color_msg_fail_identify)
+        width, height = 0,0
 
     # format a label for display purpose
     # label = shortname +': ' + str(width).rjust(4) + ' x ' + str(height).rjust(4) + ' | '
@@ -110,16 +93,16 @@ for filename in os.listdir(origin):
     # remove small images
     # [remove portraits]
     # keep landscapes
-    if height < min_size or width < min_size:
-        print(label + color_msg_ok_del_small)
+    if height == 0 and width == 0:
         os.unlink(bestpath)
+        print(label + color_msg_fail_identify)
+    elif height < min_size or width < min_size:
+        os.unlink(bestpath)
+        print(label + color_msg_ok_del_small)
+    elif height > width and delete_portraits:
+        os.unlink(bestpath)
+        print(label + color_msg_ok_del_portrait)
     elif height > width:
-        if delete_portraits:
-            print(label + color_msg_ok_del_portrait)
-            os.unlink(bestpath)
-        else:
-            print(label + color_msg_ok_keep_portrait)
+        print(label + color_msg_ok_keep_portrait)
     else:
         print(label + color_msg_ok_keep_landscape)
-
-
