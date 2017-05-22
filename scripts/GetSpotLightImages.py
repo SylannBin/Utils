@@ -3,16 +3,19 @@ from PIL import Image
 
 # ============================ CONFIG ================================
 
-user = "rfvin"              # %USERPROFILE%
+user = os.environ['USERPROFILE']
 dest_folder = "_tmp_"       # Destination folder in Downloads
 delete_portraits = False    # delete portraits or not?
-min_size = 400              # dimension in pixels
+min_size = 500              # dimension in pixels
 
 # ============================= PATHS ================================
 
-origin = r"C:\Users\{0}\AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets".format(user)
+local_packages = "AppData\Local\Packages"
+spotlight_folder = "Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets"
 
-destination = r"C:\Users\{0}\Downloads\{1}".format(user, dest_folder)
+# destination = r"C:\Users\{0}\Downloads\{1}".format(user, dest_folder)
+origin = os.path.join(user, local_packages, spotlight_folder) 
+destination = os.path.join(user, 'Downloads', dest_folder)
 
 # ======================== COLOR MESSAGES ============================
 
@@ -24,14 +27,14 @@ class bcolors:
     ENDC = '\033[0m'
 
 color_msg_fail_origin       = bcolors.FAIL + "origin path does not exists:\n" + bcolors.ENDC 
-color_msg_fail_copy         = bcolors.FAIL + "copy fail:\n" + bcolors.ENDC
-color_msg_fail_rename       = bcolors.FAIL + "rename fail:\n" + bcolors.ENDC
-color_msg_fail_identify     = bcolors.FAIL + "identification failed" + bcolors.ENDC
-color_msg_warn_exists       = bcolors.WARN + "already exists"        + bcolors.ENDC
-color_msg_ok_del_small      = bcolors.FAIL + "too small -> delete"   + bcolors.ENDC
-color_msg_ok_del_portrait   = bcolors.FAIL + "portrait  -> delete"   + bcolors.ENDC
-color_msg_ok_keep_portrait  = bcolors.OK   + "portrait  -> keep"     + bcolors.ENDC
-color_msg_ok_keep_landscape = bcolors.OK   + "landscape -> keep"     + bcolors.ENDC
+color_msg_fail_copy         = bcolors.FAIL + "copy fail:\n"                 + bcolors.ENDC
+color_msg_fail_rename       = bcolors.FAIL + "rename fail:\n"               + bcolors.ENDC
+color_msg_fail_identify     = bcolors.FAIL + "identify fail  -> deleted"    + bcolors.ENDC
+color_msg_warn_exists       = bcolors.WARN + "already exists -> not copied" + bcolors.ENDC
+color_msg_ok_del_small      = bcolors.FAIL + "too small      -> deleted"    + bcolors.ENDC
+color_msg_ok_del_portrait   = bcolors.FAIL + "portrait       -> deleted"    + bcolors.ENDC
+color_msg_ok_keep_portrait  = bcolors.OK   + "portrait       -> kept"       + bcolors.ENDC
+color_msg_ok_keep_landscape = bcolors.OK   + "landscape      -> kept"       + bcolors.ENDC
 
 print(bcolors.HEAD + "Made by `SylannBin` (copyleft)\n\
 Thank you for using this simple script. I hope it serves you well.\n\
@@ -57,6 +60,8 @@ def handleRemoveReadonly(func, path, exc):
 # Ensure destination folder exists
 if not os.path.exists(destination):
     os.makedirs(destination)
+
+print("Copying files from:\n{0}\nto: {1}\n\nProcessing...\n".format(origin, destination))
 
 # Fetch images from origin and work on each of them
 for filename in os.listdir(origin):
